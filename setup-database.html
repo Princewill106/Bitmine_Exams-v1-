@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Setup - Online Exam System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Database Setup</h1>
+                <p class="text-gray-600 mb-8 text-center">Initialize your Firebase database with sample data</p>
+                
+                <!-- Progress Indicator -->
+                <div id="progress" class="mb-8 hidden">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="text-sm text-gray-600 mt-2 text-center">Initializing...</p>
+                </div>
+
+                <!-- Setup Options -->
+                <div id="setupOptions" class="space-y-6">
+                    <div class="border border-gray-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Setup Options</h3>
+                        
+                        <div class="space-y-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="createClasses" checked class="mr-3">
+                                <span>Create sample classes (Primary 1-5 with sections)</span>
+                            </label>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" id="createSubjects" checked class="mr-3">
+                                <span>Create sample subjects (Mathematics, English, Science, etc.)</span>
+                            </label>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" id="createSampleExam" checked class="mr-3">
+                                <span>Create a sample exam with questions</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button onclick="initializeDatabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+                        Initialize Database
+                    </button>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="hidden">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-green-800 mb-4">Setup Complete!</h3>
+                        <div id="resultsList" class="space-y-2 text-sm text-green-700"></div>
+                        <div class="mt-6 flex space-x-4">
+                            <a href="admin-login.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                                Go to Admin Login
+                            </a>
+                            <a href="index.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                                Back to Home
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Firebase Config -->
+    <script src="config.js"></script>
+    
+    <script>
+        // Initialize Firebase (check if not already initialized)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Use the db from config.js or create new reference
+        const database = firebase.firestore();
+
+        async function initializeDatabase() {
+            const setupOptions = document.getElementById('setupOptions');
+            const progress = document.getElementById('progress');
+            const results = document.getElementById('results');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const resultsList = document.getElementById('resultsList');
+
+            // Hide setup options and show progress
+            setupOptions.classList.add('hidden');
+            progress.classList.remove('hidden');
+
+            const tasks = [];
+            let completedTasks = 0;
+
+            // Check what to create
+            const createClasses = document.getElementById('createClasses').checked;
+            const createSubjects = document.getElementById('createSubjects').checked;
+            const createSampleExam = document.getElementById('createSampleExam').checked;
+
+            if (createClasses) tasks.push('classes');
+            if (createSubjects) tasks.push('subjects');
+            if (createSampleExam) tasks.push('exam');
+
+            const totalTasks = tasks.length;
+
+            function updateProgress(message) {
+                completedTasks++;
+                const percentage = (completedTasks / totalTasks) * 100;
+                progressBar.style.width = percentage + '%';
+                progressText.textContent = message;
+            }
+
+            const createdItems = [];
+
+            try {
+                // Create Classes
+                if (createClasses) {
+                    progressText.textContent = 'Creating classes...';
+                    const classes = [
+                        'Primary 1 - Orange',
+                        'Primary 1 - Lemon', 
+                        'Primary 1 - Yellow',
+                        'Primary 2 - Orange',
+                        'Primary 2 - Lemon',
+                        'Primary 3 - Orange',
+                        'Primary 4 - Orange',
+                        'Primary 5 - Orange'
+                    ];
+
+                    for (const className of classes) {
+                        const classCode = await generateUniqueClassCode();
+                        await database.collection('classes').add({
+                            name: className,
+                            code: classCode,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    createdItems.push(`✅ Created ${classes.length} classes`);
+                    updateProgress('Classes created successfully');
+                }
+
+                // Create Subjects
+                if (createSubjects) {
+                    progressText.textContent = 'Creating subjects...';
+                    const subjects = [
+                        'Mathematics',
+                        'English Language',
+                        'Basic Science',
+                        'Social Studies',
+                        'Civic Education',
+                        'Christian Religious Studies',
+                        'Physical and Health Education',
+                        'Computer Studies'
+                    ];
+
+                    for (const subjectName of subjects) {
+                        await database.collection('subjects').add({
+                            name: subjectName,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    createdItems.push(`✅ Created ${subjects.length} subjects`);
+                    updateProgress('Subjects created successfully');
+                }
+
+                // Create Sample Exam
+                if (createSampleExam) {
+                    progressText.textContent = 'Creating sample exam...';
+                    
+                    // Get first class and subject for the exam
+                    const classSnapshot = await database.collection('classes').limit(1).get();
+                    const subjectSnapshot = await database.collection('subjects').limit(1).get();
+                    
+                    if (!classSnapshot.empty && !subjectSnapshot.empty) {
+                        const sampleClass = classSnapshot.docs[0];
+                        const sampleSubject = subjectSnapshot.docs[0];
+                        
+                        const examCode = await generateUniqueExamCode();
+                        const examRef = await database.collection('exams').add({
+                            title: 'Sample Mathematics Test',
+                            classId: sampleClass.id,
+                            className: sampleClass.data().name,
+                            subjectId: sampleSubject.id,
+                            subjectName: sampleSubject.data().name,
+                            examType: 'first-test',
+                            code: examCode,
+                            duration: 30,
+                            totalQuestions: 5,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Add sample questions
+                        const questions = [
+                            {
+                                question: "What is 5 + 3?",
+                                options: ["6", "7", "8", "9"],
+                                correctAnswer: 2,
+                                points: 2
+                            },
+                            {
+                                question: "What is 10 - 4?",
+                                options: ["5", "6", "7", "8"],
+                                correctAnswer: 1,
+                                points: 2
+                            },
+                            {
+                                question: "What is 3 × 4?",
+                                options: ["10", "11", "12", "13"],
+                                correctAnswer: 2,
+                                points: 2
+                            },
+                            {
+                                question: "What is 15 ÷ 3?",
+                                options: ["4", "5", "6", "7"],
+                                correctAnswer: 1,
+                                points: 2
+                            },
+                            {
+                                question: "What is 7 + 8?",
+                                options: ["14", "15", "16", "17"],
+                                correctAnswer: 1,
+                                points: 2
+                            }
+                        ];
+
+                        for (let i = 0; i < questions.length; i++) {
+                            await database.collection('questions').add({
+                                ...questions[i],
+                                examId: examRef.id,
+                                questionNumber: i + 1,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+
+                        createdItems.push(`✅ Created sample exam with ${questions.length} questions`);
+                    }
+                    updateProgress('Sample exam created successfully');
+                }
+
+                // Show results
+                progress.classList.add('hidden');
+                results.classList.remove('hidden');
+                
+                resultsList.innerHTML = createdItems.map(item => `<div>${item}</div>`).join('');
+
+            } catch (error) {
+                console.error('Error initializing database:', error);
+                progressText.textContent = 'Error: ' + error.message;
+                progressText.className = 'text-sm text-red-600 mt-2 text-center';
+            }
+        }
+
+        // Generate unique codes (simplified versions)
+        async function generateUniqueClassCode() {
+            let code;
+            let isUnique = false;
+            while (!isUnique) {
+                code = 'CLS' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                const snapshot = await database.collection('classes').where('code', '==', code).get();
+                isUnique = snapshot.empty;
+            }
+            return code;
+        }
+
+        async function generateUniqueExamCode() {
+            let code;
+            let isUnique = false;
+            while (!isUnique) {
+                code = 'EXM' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                const snapshot = await database.collection('exams').where('code', '==', code).get();
+                isUnique = snapshot.empty;
+            }
+            return code;
+        }
+    </script>
+</body>
+</html>

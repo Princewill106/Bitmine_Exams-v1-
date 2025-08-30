@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">Student Login</h1>
+        
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="studentName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                <input type="text" id="studentName" name="studentName" required 
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            
+            <div>
+                <label for="classCode" class="block text-sm font-medium text-gray-700">Class Code</label>
+                <input type="text" id="classCode" name="classCode" required 
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g., CLS7A2B">
+            </div>
+            
+            <div>
+                <label for="examCode" class="block text-sm font-medium text-gray-700">Exam Code</label>
+                <input type="text" id="examCode" name="examCode" required 
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g., EXM9K3L"
+                    oninput="formatExamCode(this)">
+            </div>
+            
+            <button type="submit" 
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <span class="button-text">Start Exam</span>
+                <span class="loading-spinner hidden ml-2">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+            </button>
+        </form>
+        
+        <div id="errorMessage" class="mt-4 text-center text-red-600 hidden"></div>
+        <div id="successMessage" class="mt-4 text-center text-green-600 hidden"></div>
+    </div>
+    
+    <script src="config.js"></script>
+    <script>
+        // Enhanced login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const studentName = document.getElementById('studentName').value.trim();
+            const classCode = document.getElementById('classCode').value.trim().toUpperCase();
+            const examCode = document.getElementById('examCode').value.trim().toUpperCase();
+            
+            // Show loading state
+            showLoading(true);
+            clearErrors();
+            
+            try {
+                // Validate input
+                if (!studentName || !classCode || !examCode) {
+                    throw new Error('Please fill in all fields');
+                }
+                
+                if (studentName.length < 2) {
+                    throw new Error('Student name must be at least 2 characters long');
+                }
+                
+                // Validate class code format
+                if (!/^CLS[A-Z0-9]{4}$/.test(classCode)) {
+                    throw new Error('Invalid class code format. Should be like: CLS7A2B');
+                }
+                
+                // Validate exam code format (EXM followed by 4 alphanumeric characters)
+                if (!/^EXM[A-Z0-9]{4}$/.test(examCode)) {
+                    throw new Error('Invalid exam code format. Should be like: EXM9K3L');
+                }
+                
+                // Find class by code
+                const classSnapshot = await db.collection('classes').where('code', '==', classCode).get();
+                if (classSnapshot.empty) {
+                    throw new Error('Class code not found. Please check with your teacher.');
+                }
+                
+                const classData = classSnapshot.docs[0].data();
+                const classId = classSnapshot.docs[0].id;
+                
+                // Find exam by examCode and verify it belongs to the same class
+                const examSnapshot = await db.collection('exams').where('examCode', '==', examCode).get();
+                if (examSnapshot.empty) {
+                    throw new Error('Exam code not found. Please check with your teacher.');
+                }
+                
+                const examData = examSnapshot.docs[0].data();
+                const examId = examSnapshot.docs[0].id;
+                
+                // Verify exam belongs to the class
+                if (examData.classId !== classId) {
+                    throw new Error('This exam code does not belong to your class. Please verify both codes.');
+                }
+                
+                // Check if exam is active
+                if (examData.status === 'inactive') {
+                    throw new Error('This exam is currently inactive. Please contact your teacher.');
+                }
+                
+                // Check if student has already taken this exam
+                const resultSnapshot = await db.collection('examResults')
+                    .where('studentName', '==', studentName)
+                    .where('examId', '==', examId)
+                    .where('classId', '==', classId)
+                    .get();
+                
+                if (!resultSnapshot.empty) {
+                    throw new Error('You have already completed this exam. Contact your teacher if you need to retake it.');
+                }
+                
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(examData.subjectId).get();
+                const subjectData = subjectDoc.data();
+                
+                // Store session data
+                const sessionData = {
+                    studentName: studentName,
+                    classId: classId,
+                    className: classData.name,
+                    classSection: classData.section,
+                    examId: examId,
+                    examTitle: examData.title,
+                    examDuration: examData.duration,
+                    subjectId: examData.subjectId,
+                    subjectName: subjectData.name,
+                    totalQuestions: examData.questions ? examData.questions.length : 0,
+                    loginTime: new Date().toISOString()
+                };
+                
+                sessionStorage.setItem('examSession', JSON.stringify(sessionData));
+                
+                // Show success message
+                showSuccess('Login successful! Redirecting to exam...');
+                
+                // Redirect to examination page
+                setTimeout(() => {
+                    window.location.href = 'examination.html';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        // Helper functions
+        function showLoading(show) {
+            const button = document.querySelector('button[type="submit"]');
+            const spinner = button.querySelector('.loading-spinner');
+            const text = button.querySelector('.button-text');
+            
+            if (show) {
+                button.disabled = true;
+                button.classList.add('opacity-75', 'cursor-not-allowed');
+                spinner.classList.remove('hidden');
+                text.textContent = 'Verifying...';
+            } else {
+                button.disabled = false;
+                button.classList.remove('opacity-75', 'cursor-not-allowed');
+                spinner.classList.add('hidden');
+                text.textContent = 'Start Exam';
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            errorDiv.classList.add('animate-pulse');
+            
+            // Remove animation after 3 seconds
+            setTimeout(() => {
+                errorDiv.classList.remove('animate-pulse');
+            }, 3000);
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+        }
+        
+        function clearErrors() {
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+        
+        // Format exam code as user types
+        function formatExamCode(input) {
+            let value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // Auto-add EXM prefix if not present
+            if (value.length > 0 && !value.startsWith('EXM')) {
+                value = 'EXM' + value;
+            }
+            
+            // Limit to 7 characters (EXM + 4 alphanumeric)
+            if (value.length > 7) {
+                value = value.substring(0, 7);
+            }
+            
+            input.value = value;
+        }
+        
+        // Auto-format class code as user types
+        document.getElementById('classCode').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (value.length > 0 && !value.startsWith('CLS')) {
+                value = 'CLS' + value.substring(3);
+            }
+            if (value.length > 7) {
+                value = value.substring(0, 7);
+            }
+            e.target.value = value;
+        });
+        
+        document.getElementById('examCode').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (value.length > 0 && !value.startsWith('EXM')) {
+                value = 'EXM' + value.substring(3);
+            }
+            if (value.length > 7) {
+                value = value.substring(0, 7);
+            }
+            e.target.value = value;
+        });
+        
+        // Enhanced form validation feedback
+        const inputs = document.querySelectorAll('input[required]');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.value.trim() === '') {
+                    this.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                    this.classList.remove('border-gray-300', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                } else {
+                    this.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                    this.classList.add('border-gray-300', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                    this.classList.add('border-gray-300', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="app-bg min-h-screen flex flex-col justify-center">
+    <div class="container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-extrabold text-black mb-4 drop-shadow-lg animate-fade-in">Online Examination System</h1>
+            <p class="text-2xl text-gray font-medium animate-fade-in-slow">Welcome to the treasure land elementary school examination platform</p>
+        </div>
+        <div class="flex justify-center">
+            <div class="card overflow-hidden exam-card transform hover:scale-105 transition-transform duration-300 w-full max-w-lg animate-float">
+                <div class="p-8 flex flex-col items-center" style="background: linear-gradient(135deg, var(--brand-primary-strong), var(--brand-primary));">
+                    <svg class="h-20 w-20 text-white mb-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    <h2 class="text-3xl font-bold text-white mb-2">Student Portal</h2>
+                    <p class="text-brand-accent mb-6 text-lg text-center">Take your class examination by logging in with your details</p>
+                    <a href="student-login.html" class="btn btn-secondary bg-white w-full">
+                        Student Login
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Hidden Admin Card -->
+        <div id="adminCard" class="hidden">
+            <div class="card overflow-hidden exam-card mt-8 max-w-md mx-auto">
+                <div class="p-6" style="background: linear-gradient(135deg, var(--brand-primary-strong), var(--brand-primary));">
+                    <svg class="h-12 w-12 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                </div>
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold text-brand-strong mb-2">Admin Portal</h2>
+                    <p class="text-muted mb-6">View and manage examination results for all classes</p>
+                    <a href="admin-login.html" class="btn btn-primary w-full">
+                        Admin Login
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Hidden Exam Settings Card -->
+        <div id="examSettingsCard" class="hidden">
+            <div class="card overflow-hidden exam-card mt-8 max-w-md mx-auto">
+                <div class="p-6" style="background: linear-gradient(135deg, var(--brand-primary-strong), var(--brand-primary));">
+                    <svg class="h-12 w-12 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold text-brand-strong mb-2">Exam Settings</h2>
+                    <p class="text-muted mb-6">Set total score for each exam</p>
+                    <a href="exam-settings.html" class="btn btn-secondary w-full">
+                        Go to Exam Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="mt-12 text-center text-muted">
+            <p>© 2025 Online Examination System. All rights reserved. Developed By Maros</p>
+        </div>
+    </div>
+    <script>
+    // Reveal admin card with Ctrl+Shift+A
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+            const adminCard = document.getElementById('adminCard');
+            if (adminCard) adminCard.classList.toggle('hidden');
+        }
+        // Reveal exam settings card with Ctrl+Shift+S
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') {
+            const examSettingsCard = document.getElementById('examSettingsCard');
+            if (examSettingsCard) examSettingsCard.classList.toggle('hidden');
+        }
+    });
+    </script>
+    <style>
+    @keyframes float {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0); }
+    }
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .animate-fade-in { animation: fade-in 1s ease-in; }
+    .animate-fade-in-slow { animation: fade-in 2s ease-in; }
+    </style>
+    <script src="config.js"></script>
+</body>
+</html>

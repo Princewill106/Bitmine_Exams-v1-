@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Setup - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">Firebase Setup</h1>
+        <p class="mb-4">This will initialize your Firebase project with an admin user and sample questions.</p>
+        <p class="mb-4">Admin credentials will be:</p>
+        <ul class="list-disc pl-5 mb-4">
+            <li>Username: <strong>admin</strong></li>
+            <li>Password: <strong>admin123</strong></li>
+        </ul>
+        <button id="setupButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Run Setup
+        </button>
+        <div id="status" class="mt-4 text-center"></div>
+        
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-sm text-indigo-600 hover:text-indigo-500">
+                Back to Home
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyAUIdE_Vb_sdWoSU7_eSjgx0pjz6_Tks7s",
+            authDomain: "tes-quiz-app-3f0a1.firebaseapp.com",
+            projectId: "tes-quiz-app-3f0a1",
+            storageBucket: "tes-quiz-app-3f0a1.appspot.com",
+            messagingSenderId: "701178639009",
+            appId: "1:701178639009:web:628bae20116f173edff6e0",
+            measurementId: "G-EGCK4HSTB8"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+    </script>
+    <script>
+        // Create admin user
+        async function createAdminUser() {
+            try {
+                // Create admin user with email/password
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+                    "admin@example.com", 
+                    "admin123"
+                );
+                
+                console.log("Admin user created successfully:", userCredential.user.uid);
+                
+                // Add admin role to user in Firestore
+                const db = firebase.firestore();
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    email: "admin@example.com",
+                    role: "admin",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log("Admin role assigned successfully");
+                
+                // Initialize sample questions
+                await initializeSampleQuestions(db);
+                
+                return true;
+            } catch (error) {
+                console.error("Error during setup:", error);
+                throw error;
+            }
+        }
+
+        // Initialize sample questions for each class
+        async function initializeSampleQuestions(db) {
+            // Sample questions for each class
+            const classQuestions = {
+                "Primary 1 - Orange": [
+                    {
+                        id: "p1o1",
+                        question: "What is 1 + 1?",
+                        options: ["1", "2", "3", "4"],
+                        correctAnswer: "2"
+                    },
+                    {
+                        id: "p1o2",
+                        question: "Which animal says 'meow'?",
+                        options: ["Dog", "Cat", "Cow", "Lion"],
+                        correctAnswer: "Cat"
+                    }
+                ],
+                "Primary 1 - Lemon": [
+                    {
+                        id: "p1l1",
+                        question: "What color is the sky?",
+                        options: ["Red", "Green", "Blue", "Yellow"],
+                        correctAnswer: "Blue"
+                    },
+                    {
+                        id: "p1l2",
+                        question: "How many days are in a week?",
+                        options: ["5", "6", "7", "8"],
+                        correctAnswer: "7"
+                    }
+                ],
+                "Primary 1 - Yellow": [
+                    {
+                        id: "p1y1",
+                        question: "Which shape has 3 sides?",
+                        options: ["Circle", "Square", "Triangle", "Rectangle"],
+                        correctAnswer: "Triangle"
+                    },
+                    {
+                        id: "p1y2",
+                        question: "What comes after the number 9?",
+                        options: ["8", "10", "11", "12"],
+                        correctAnswer: "10"
+                    }
+                ],
+                "Primary 2 - Orange": [
+                    {
+                        id: "p2o1",
+                        question: "What is 5 + 7?",
+                        options: ["10", "11", "12", "13"],
+                        correctAnswer: "12"
+                    },
+                    {
+                        id: "p2o2",
+                        question: "Which planet do we live on?",
+                        options: ["Mars", "Earth", "Jupiter", "Venus"],
+                        correctAnswer: "Earth"
+                    }
+                ],
+                "Primary 2 - Lemon": [
+                    {
+                        id: "p2l1",
+                        question: "How many hours are in a day?",
+                        options: ["12", "18", "24", "36"],
+                        correctAnswer: "24"
+                    },
+                    {
+                        id: "p2l2",
+                        question: "Which animal has a long neck?",
+                        options: ["Elephant", "Giraffe", "Lion", "Zebra"],
+                        correctAnswer: "Giraffe"
+                    }
+                ]
+            };
+            
+            // Add questions to Firestore
+            const batch = db.batch();
+            
+            for (const [classSection, questions] of Object.entries(classQuestions)) {
+                const [className, section] = classSection.split(" - ");
+                
+                questions.forEach((question, index) => {
+                    const docRef = db.collection('questions').doc(`${className.replace(/\s+/g, '')}_${section}_${index}`);
+                    batch.set(docRef, {
+                        ...question,
+                        class: className,
+                        section: section,
+                        order: index
+                    });
+                });
+            }
+            
+            await batch.commit();
+            console.log("Sample questions initialized successfully");
+        }
+
+        // Add event listener to setup button
+        document.getElementById('setupButton').addEventListener('click', function() {
+            this.disabled = true;
+            this.textContent = 'Setting up...';
+            document.getElementById('status').textContent = 'Creating admin user and initializing data...';
+            
+            createAdminUser().then(() => {
+                this.textContent = 'Setup Complete!';
+                document.getElementById('status').innerHTML = 'Setup completed successfully!<br><a href="admin-login.html" class="text-indigo-600">Go to Admin Login</a>';
+            }).catch(error => {
+                this.disabled = false;
+                this.textContent = 'Try Again';
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            });
+        });
+    </script>
+</body>
+</html>

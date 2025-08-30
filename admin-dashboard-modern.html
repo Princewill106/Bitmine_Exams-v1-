@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Management System - Admin Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .sidebar-item.active {
+            background-color: #f3f4f6;
+            border-left: 4px solid #333;
+        }
+        
+        .sidebar-item.active svg {
+            color: #333;
+        }
+        
+        .sidebar-item.active span {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        /* Collapsible sidebar styles */
+        #sidebar.collapsed {
+            width: 4rem;
+        }
+
+        #sidebar.collapsed .sidebar-text {
+            display: none;
+        }
+
+        #sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        #sidebar.collapsed .sidebar-item svg {
+            margin: 0;
+        }
+
+        #main-content {
+            margin-left: 0;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        #main-content.sidebar-collapsed {
+            margin-left: 0;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: -16rem;
+                z-index: 50;
+                height: 100vh;
+            }
+            #sidebar.mobile-open {
+                left: 0;
+            }
+            #main-content {
+                margin-left: 0;
+            }
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            border: 1px solid #e5e7eb;
+        }
+        .stat-card.white {
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-card.accent {
+            background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+        }
+        .stat-card.light-accent {
+            background: #f3f4f6;
+            color: #1f2937;
+            border: 1px solid #d1d5db;
+        }
+        .filter-section {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+        .exam-layer {
+            border-left: 4px solid #6b7280;
+            background: #ffffff;
+        }
+        .exam-layer.first { border-left-color: #10b981; }
+        .exam-layer.second { border-left-color: #f59e0b; }
+        .exam-layer.third { border-left-color: #ef4444; }
+    </style>
+</head>
+<body class="app-bg min-h-screen">
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span class="text-gray-700">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+        <span id="notificationMessage"></span>
+    </div>
+
+    <!-- Create Class Modal -->
+    <div id="createClassModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Create New Class</h3>
+                <button onclick="closeCreateClassModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createClassForm" onsubmit="submitCreateClass(event)">
+                <div class="mb-4">
+                    <label for="className" class="block text-sm font-medium text-gray-700 mb-2">Class Name</label>
+                    <input type="text" id="className" name="className" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g., Grade 1 - Section A">
+                </div>
+                <div class="mb-4">
+                    <label for="classSection" class="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                    <input type="text" id="classSection" name="classSection" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g., A, B, Orange, Lemon">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCreateClassModal()" 
+                            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Create Class
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Subject Modal -->
+    <div id="createSubjectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Create New Subject</h3>
+                <button onclick="closeCreateSubjectModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createSubjectForm" onsubmit="submitCreateSubject(event)">
+                <div class="mb-4">
+                    <label for="subjectName" class="block text-sm font-medium text-gray-700 mb-2">Subject Name</label>
+                    <input type="text" id="subjectName" name="subjectName" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="e.g., Mathematics, English Language">
+                </div>
+                <div class="mb-4">
+                    <label for="subjectDescription" class="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                    <textarea id="subjectDescription" name="subjectDescription" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              placeholder="Brief description of the subject"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCreateSubjectModal()" 
+                            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Create Subject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Exam Modal -->
+    <div id="createExamModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Create New Exam</h3>
+                <button onclick="closeCreateExamModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createExamForm" onsubmit="submitCreateExam(event)">
+                <div class="mb-4">
+                    <label for="examTitle" class="block text-sm font-medium text-gray-700 mb-2">Exam Title</label>
+                    <input type="text" id="examTitle" name="examTitle" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="e.g., Mid-term Mathematics">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="examClass" class="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
+                        <select id="examClass" name="examClass" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                            <option value="">Choose a class...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="examSubject" class="block text-sm font-medium text-gray-700 mb-2">Select Subject</label>
+                        <select id="examSubject" name="examSubject" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                            <option value="">Choose a subject...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="examLayer" class="block text-sm font-medium text-gray-700 mb-2">Exam Layer</label>
+                    <select id="examLayer" name="examLayer" required onchange="updateMaxScore()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                        <option value="">Select exam layer...</option>
+                        <option value="first-test" data-max="10">First Test (Max: 10 marks)</option>
+                        <option value="second-test" data-max="30">Second Test (Max: 30 marks)</option>
+                        <option value="main-exam" data-max="60">Main Exam (Max: 60 marks)</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="totalScore" class="block text-sm font-medium text-gray-700 mb-2">
+                        Total Score 
+                        <span id="scoreLimit" class="text-xs text-gray-500"></span>
+                    </label>
+                    <input type="number" id="totalScore" name="totalScore" required min="1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="Enter total score">
+                    <div id="scoreError" class="text-red-500 text-xs mt-1 hidden"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="examDuration" class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                    <input type="number" id="examDuration" name="examDuration" required min="5" max="180"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="e.g., 60">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCreateExamModal()" 
+                            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                        Create Exam
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Exam Modal -->
+    <div id="createExamModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Create New Exam</h3>
+                <button onclick="closeCreateExamModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createExamForm" onsubmit="submitCreateExam(event)">
+                <div class="mb-4">
+                    <label for="examTitle" class="block text-sm font-medium text-gray-700 mb-2">Exam Title</label>
+                    <input type="text" id="examTitle" name="examTitle" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="e.g., Mid-term Mathematics">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="examClass" class="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
+                        <select id="examClass" name="examClass" required
+                                class="w-full px-3 py-2     border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                            <option value="">Choose a class...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="examSubject" class="block text-sm font-medium text-gray-700 mb-2">Select Subject</label>
+                        <select id="examSubject" name="examSubject" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                            <option value="">Choose a subject...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="examLayer" class="block text-sm font-medium text-gray-700 mb-2">Exam Layer</label>
+                    <select id="examLayer" name="examLayer" required onchange="updateMaxScore()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                        <option value="">Select exam layer...</option>
+                        <option value="first-test" data-max="10">First Test (Max: 10 marks)</option>
+                        <option value="second-test" data-max="30">Second Test (Max: 30 marks)</option>
+                        <option value="main-exam" data-max="60">Main Exam (Max: 60 marks)</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="totalScore" class="block text-sm font-medium text-gray-700 mb-2">
+                        Total Score 
+                        <span id="scoreLimit" class="text-xs text-gray-500"></span>
+                    </label>
+                    <input type="number" id="totalScore" name="totalScore" required min="1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="Enter total score">
+                    <div id="scoreError" class="text-red-500 text-xs mt-1 hidden"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="examDuration" class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                    <input type="number" id="examDuration" name="examDuration" required min="5" max="180"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                           placeholder="e.g., 60">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCreateExamModal()" 
+                            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                        Create Exam
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Notification Modal -->
+    <div id="customNotificationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <div class="flex items-center mb-4">
+                <div id="notificationIcon" class="flex-shrink-0 mr-3">
+                    <!-- Icon will be set by JavaScript -->
+                </div>
+                <div>
+                    <h3 id="notificationTitle" class="text-lg font-semibold text-gray-900"></h3>
+                </div>
+            </div>
+            <p id="notificationMessage" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-end">
+                <button onclick="closeCustomNotification()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="customConfirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 mr-3">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="confirmationTitle" class="text-lg font-semibold text-gray-900">Confirm Action</h3>
+                </div>
+            </div>
+            <p id="confirmationMessage" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeCustomConfirmation(false)" 
+                        class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    Cancel
+                </button>
+                <button onclick="closeCustomConfirmation(true)" 
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Check -->
+    <div id="authCheck" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Verifying authentication...</p>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div id="mainLayout" class="hidden flex min-h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar w-64 shadow-lg transition-all duration-300 ease-in-out">
+            <div class="p-6">
+                <div class="flex items-center space-x-3 mb-8">
+                    <div class="bg-blue-500 rounded-lg p-2">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <div class="sidebar-text">
+                        <h2 class="text-lg font-semibold text-gray-800">Exam System</h2>
+                        <p class="text-sm text-gray-500">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="space-y-1">
+                <a href="#" onclick="showSection('dashboard')" class="nav-item sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 active" data-section="dashboard">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"></path>
+                    </svg>
+                    <span class="sidebar-text text-gray-700 font-medium">Dashboard</span>
+                </a>
+                
+                <a href="#" onclick="showSection('classes')" class="nav-item sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200" data-section="classes">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <span class="sidebar-text text-gray-700 font-medium">Classes</span>
+                </a>
+                
+                <a href="#" onclick="showSection('subjects')" class="nav-item sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200" data-section="subjects">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    <span class="sidebar-text text-gray-700 font-medium">Subjects</span>
+                </a>
+                
+                <a href="#" onclick="showSection('exams')" class="nav-item sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200" data-section="exams">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="sidebar-text text-gray-700 font-medium">Exams</span>
+                </a>
+                
+                <a href="#" onclick="showSection('results')" class="nav-item sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200" data-section="results">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span class="sidebar-text text-gray-700 font-medium">Results</span>
+                </a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="absolute bottom-6 left-4 right-4">
+                <button id="logoutBtn" class="w-auto flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-sign-out-alt w-5 h-5 mr-3"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="flex-1 ml-64">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <div>
+                            <h1 class="text-2xl font-semibold text-gray-900" id="pageTitle">Dashboard</h1>
+                            <p class="text-sm text-gray-600" id="currentDateTime"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Admin User</p>
+                            <p class="text-xs text-gray-500">Administrator</p>
+                        </div>
+                        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-colors duration-200">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="p-2 sm:p-3">
+                <!-- Dashboard Section -->
+                <div id="dashboardSection" class="content-section">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Classes</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="totalClasses">0</p>
+                                    <p class="text-xs text-gray-500">Active</p>
+                                </div>
+                                <div class="p-2 bg-blue-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Subjects</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="totalSubjects">0</p>
+                                    <p class="text-xs text-gray-500">Available</p>
+                                </div>
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Exams</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="totalExams">0</p>
+                                    <p class="text-xs text-gray-500">Created</p>
+                                </div>
+                                <div class="p-2 bg-yellow-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Results</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="totalResults">0</p>
+                                    <p class="text-xs text-gray-500">Submitted</p>
+                                </div>
+                                <div class="p-2 bg-purple-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classes Section -->
+                <div id="classesSection" class="content-section hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Classes Management</h2>
+                        <button onclick="createClass()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Class
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Class Name</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Section</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Class Code</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="classesTableBody">
+                                    <!-- Classes will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subjects Section -->
+                <div id="subjectsSection" class="content-section hidden">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Subjects Management</h3>
+                            <button onclick="createSubject()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Add Subject
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Subject Name</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Description</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subjectsTableBody">
+                                    <!-- Subjects will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exams Section -->
+                <div id="examsSection" class="content-section hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Exams</h2>
+                        <button onclick="createExam()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <span>Create Exam</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Exams Management</h3>
+                            <button onclick="showAllExams()" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors">
+                                <i class="fas fa-list mr-2"></i>View All Exams
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Exam Title</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Subject</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Layer</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Exam Code</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Total Score</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="examsTableBody">
+                                    <!-- Exams will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="content-section hidden">
+                    <!-- Filter Section -->
+                    <div class="filter-section rounded-xl p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Filter Results</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                                <select id="classFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                    <option value="all">All Classes</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                                <select id="subjectFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                    <option value="all">All Subjects</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Exam Type</label>
+                                <select id="examTypeFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                    <option value="all">All Types</option>
+                                    <option value="first-test">First Test (10 marks)</option>
+                                    <option value="second-test">Second Test (30 marks)</option>
+                                    <option value="main-exam">Main Exam (60 marks)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="applyResultFilters()" answers
+                                (map)
+                                
+                                
+                                q_0
+                                "false"
+                                (string)
+                                
+                                
+                                classId
+                                "eZehce59GjIQB2OJKuwo"
+                                (string)
+                                
+                                
+                                className
+                                "primary 2"
+                                (string)
+                                
+                                
+                                earnedPoints
+                                10
+                                (number)
+                                
+                                
+                                examId
+                                "cPkdZ3fOl8DzYcoGKD83"
+                                (string)
+                                
+                                
+                                examTitle
+                                "anonymous9000"
+                                (string)
+                                
+                                
+                                percentage
+                                100
+                                (number)
+                                
+                                
+                                score
+                                1
+                                (number)
+                                
+                                
+                                studentName
+                                "nunu milk"
+                                (string)
+                                
+                                
+                                subjectId
+                                "XjifOBW9DlwE69wZeC7e"
+                                (string)
+                                
+                                
+                                subjectName
+                                "Engilsh"
+                                (string)
+                                
+                                
+                                submittedAt
+                                "2025-08-15T15:54:21.424Z"
+                                (string)
+                                
+                                
+                                timestamp
+                                August 15, 2025 at 8:54:22 AM UTC-7
+                                (timestamp)
+                                
+                                
+                                totalPoints
+                                10
+                                (number)
+                                
+                                
+                                totalQuestions
+                                1class="w-full bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors">
+                                    <i class="fas fa-filter mr-2"></i>Apply Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Exam Results</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="exportResults()" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors">
+                                    <i class="fas fa-download mr-2"></i>Export
+                                </button>
+                                <button onclick="clearOldResults()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-trash mr-2"></i>Clear Old Results
+                                </button>
+                                <button onclick="toggleEditMode()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-edit mr-2"></i><span id="editModeText">Edit Mode</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Student</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Subject</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Exam</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700">Type</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700 text-center">Score</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700 text-center">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsTableBody">
+                                    <!-- Results will be populated by JavaScript -->
+                                </tbody>
+                                <!-- Debug Button -->
+                                <!-- <tfoot>
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <button onclick="debugLoadResults()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
+                                                <i class="fas fa-bug mr-2"></i>Debug: Load Results
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot> -->
+                         </table> 
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Load Firebase and config first -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // Initialize Firebase
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase initialized successfully');
+            } else {
+                console.log('Firebase already initialized');
+            }
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            document.getElementById('loadingModal').classList.add('hidden');
+            document.getElementById('authCheck').innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                    <p class="font-bold">Error</p>
+                    <p>Failed to initialize Firebase. Please check your internet connection and refresh the page.</p>
+                </div>`;
+        }
+        loadingModal = document.getElementById('loadingModal');
+        if (loadingModal) loadingModal.classList.remove('hidden');
+        
+        // Check authentication state
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                // User is signed in, show the main layout
+                const mainLayout = document.getElementById('mainLayout');
+                if (mainLayout) {
+                    mainLayout.classList.remove('hidden');
+                    loadingModal.classList.add('hidden');
+                }
+                
+                // Initialize the dashboard
+                if (typeof initializeDashboard === 'function') {
+                    initializeDashboard();
+                }
+            } else {
+                // User is not signed in, redirect to login
+                window.location.href = 'admin-login.html';
+            }
+        });
+        
+        // Set up logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function() {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'admin-login.html';
+                }).catch((error) => {
+                    console.error('Error signing out:', error);
+                });
+            });
+        }
+    </script>
+    
+    <!-- Load admin management script -->
+    <script src="admin-management-modern-clean.js" onerror="console.error('Error loading admin-management-modern-clean.js')"></script>
+    <script>
+        // Check if admin-management-modern-clean.js loaded correctly
+        if (typeof checkAuthState === 'function') {
+            console.log('admin-management-modern-clean.js loaded successfully');
+            
+            // Function to handle results tab click
+            async function handleResultsTabClick() {
+                console.log('Results tab clicked, loading results and populating filters...');
+                try {
+                    // Show loading state
+                    const tbody = document.getElementById('resultsTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-gray-500">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i> Loading results...
+                                </td>
+                            </tr>`;
+                    }
+                    
+                    // First load the results
+                    if (typeof loadResults === 'function') {
+                        console.log('Calling loadResults...');
+                        await loadResults();
+                        console.log('Results loaded successfully');
+                    } else {
+                        console.error('loadResults function not found');
+                        showNotification('Error: Results loading function not found', 'error');
+                    }
+                    
+                    // Then populate the filters
+                    if (typeof populateFilterDropdowns === 'function') {
+                        console.log('Populating filter dropdowns...');
+                        await populateFilterDropdowns();
+                        console.log('Filter dropdowns populated successfully');
+                    } else {
+                        console.error('populateFilterDropdowns function not found');
+                        showNotification('Warning: Could not load filter options', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error in results tab click handler:', error);
+                    showNotification('Error loading results: ' + (error.message || 'Unknown error'), 'error');
+                    
+                    // Show error in the table
+                    const tbody = document.getElementById('resultsTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-red-600">
+                                    Error loading results. Please check console for details.
+                                    <div class="text-sm text-red-700 mt-2">${error.message || 'Unknown error'}</div>
+                                </td>
+                            </tr>`;
+                    }
+                }
+            }
+            
+            // Add click event listener for results tab
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM fully loaded, setting up results tab listeners...');
+                
+                // First try to find by onclick attribute
+                const resultsTab = document.querySelector('a[onclick*="showSection(\'results\')"]');
+                if (resultsTab) {
+                    console.log('Found results tab by onclick attribute:', resultsTab);
+                    resultsTab.addEventListener('click', handleResultsTabClick);
+                    console.log('Added click listener to results tab');
+                    
+                    // Also add a data-section attribute to make it easier to find
+                    resultsTab.setAttribute('data-section', 'results');
+                    console.log('Added data-section attribute to results tab');
+                } else {
+                    console.warn('Results tab element not found by onclick attribute');
+                }
+                
+                // Also find by data-section attribute as fallback
+                const resultsTabAlt = document.querySelector('a[data-section="results"]');
+                if (resultsTabAlt) {
+                    console.log('Found results tab by data-section attribute:', resultsTabAlt);
+                    if (!resultsTab) {  // Only add if not already added
+                        resultsTabAlt.addEventListener('click', handleResultsTabClick);
+                        console.log('Added click listener to results tab (found by data-section)');
+                    }
+                } else {
+                    console.warn('Results tab not found by data-section attribute either');
+                }
+                
+                // Try one more time with a more generic selector as last resort
+                if (!resultsTab && !resultsTabAlt) {
+                    console.log('Trying to find results tab by text content...');
+                    const allLinks = document.querySelectorAll('a');
+                    let found = false;
+                    allLinks.forEach(link => {
+                        if (link.textContent.toLowerCase().includes('result') && !found) {
+                            console.log('Found potential results tab by text content:', link);
+                            link.addEventListener('click', handleResultsTabClick);
+                            console.log('Added click listener to potential results tab');
+                            found = true;
+                        }
+                    });
+                    if (!found) {
+                        console.error('Could not find results tab by any method');
+                    }
+                }
+            });
+            
+            // Also update the showSection function to handle results tab
+            const originalShowSection = window.showSection || function() {};
+            window.showSection = function(sectionName) {
+                console.log('showSection called with:', sectionName, new Error().stack);
+                
+                // If showing results section, trigger the results load
+                if (sectionName === 'results') {
+                    console.log('Results section shown, triggering results load...');
+                    // Use setTimeout to ensure the section is visible before loading
+                    setTimeout(() => {
+                        console.log('Delayed results load starting...');
+                        handleResultsTabClick().catch(error => {
+                            console.error('Error in delayed results load:', error);
+                        });
+                    }, 100);
+                }
+                originalShowSection.apply(this, arguments);
+                if (sectionName === 'results') {
+                    console.log('Results section shown, loading results...');
+                    handleResultsTabClick();
+                }
+            };
+        } else {
+            console.error('admin-management-modern-clean.js did not load correctly');
+            document.getElementById('loadingModal').classList.add('hidden');
+            document.getElementById('authCheck').innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                    <p class="font-bold">Error</p>
+                    <p>Failed to load dashboard scripts. Please refresh the page or contact support.</p>
+                </div>`;
+        }
+    </script>
+</body>
+</html>

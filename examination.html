@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examination - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 id="examTitle" class="text-2xl font-bold text-indigo-600">Examination</h1>
+                    <p id="studentInfo" class="text-gray-600"></p>
+                </div>
+                <div class="bg-indigo-100 text-indigo-800 py-2 px-4 rounded-md">
+                    <span>Time Left: </span>
+                    <span id="timer" class="font-bold">30:00</span>
+                </div>
+            </div>
+            
+            <div id="examContent" class="space-y-8">
+                <div id="loadingMessage" class="text-center py-12">
+                    <svg class="animate-spin h-8 w-8 mx-auto text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-4 text-gray-600">Loading your examination...</p>
+                </div>
+            </div>
+            
+            <div id="navigationButtons" class="flex justify-between mt-8 hidden">
+                <button id="prevButton" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    Previous Question
+                </button>
+                <button id="nextButton" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    Next Question
+                </button>
+            </div>
+            
+            <div id="submitExam" class="mt-8 text-center hidden">
+                <button id="submitButton" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Submit Examination
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Move all scripts to the end of body in correct order -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // Debug: Check Firebase and db initialization
+        console.log('Firebase initialized:', typeof firebase !== 'undefined' ? 'Yes' : 'No');
+        console.log('Firestore available:', typeof firebase.firestore !== 'undefined' ? 'Yes' : 'No');
+        console.log('db object:', typeof db !== 'undefined' ? 'Available' : 'Undefined');
+        // Check if student is logged in with new multi-subject system
+        const examSession = JSON.parse(sessionStorage.getItem('examSession') || '{}');
+        
+        const studentName = examSession.studentName;
+        const classId = examSession.classId;
+        const className = examSession.className;
+        const subjectId = examSession.subjectId;
+        const subjectName = examSession.subjectName;
+        const examId = examSession.examId;
+        const examTitle = examSession.examTitle;
+        const examDuration = parseInt(examSession.examDuration) || 30;
+        
+        console.log('Exam session data:', examSession);
+        
+        if (!studentName || !classId || !subjectId || !examId) {
+            console.error('Missing required session data. Redirecting to login.');
+            window.location.href = 'student-login.html';
+        }
+        
+        // Display student and exam info
+        document.getElementById('examTitle').textContent = `${examTitle} - ${subjectName}`;
+        document.getElementById('studentInfo').textContent = `${studentName} - ${className}`;
+        
+        // Initialize variables
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let answers = {};
+        let timeLeft = examDuration * 60; // Convert minutes to seconds
+        let examData = null;
+        
+        // Restore saved answers and timer from sessionStorage (exam-specific)
+        const examKey = `exam_${examId}`;
+        let savedAnswers = JSON.parse(sessionStorage.getItem(`${examKey}_answers`) || '{}');
+        let savedTimeLeft = sessionStorage.getItem(`${examKey}_timeLeft`);
+        if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+            answers = savedAnswers;
+        }
+        if (savedTimeLeft && !isNaN(Number(savedTimeLeft))) {
+            timeLeft = Number(savedTimeLeft);
+        }
+        
+        // Fetch questions from Firebase based on selected exam
+        async function fetchQuestions() {
+            try {
+                // Show loading message
+                document.getElementById('loadingMessage').classList.remove('hidden');
+                
+                console.log('Fetching questions for exam ID:', examId);
+                
+                // Get exam data directly by ID
+                const examDoc = await db.collection('exams').doc(examId).get();
+                
+                if (!examDoc.exists) {
+                    throw new Error('Exam not found');
+                }
+                
+                examData = {
+                    id: examDoc.id,
+                    ...examDoc.data()
+                };
+                
+                questions = Array.isArray(examData.questions) ? examData.questions : [];
+                
+                console.log('Exam data loaded:', examData);
+                console.log('Questions found:', questions.length);
+                
+                // If no questions found for this exam, show an error
+                if (questions.length === 0) {
+                    document.getElementById('examContent').innerHTML = `
+                        <div class="text-center py-12">
+                            <div class="text-red-600 text-xl mb-4">No questions found for this exam.</div>
+                            <div class="text-gray-600">Please contact your teacher for assistance.</div>
+                        </div>
+                    `;
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('navigationButtons').classList.add('hidden');
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error fetching questions:', error);
+                document.getElementById('examContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="text-red-600 text-xl mb-4">Error loading exam.</div>
+                        <div class="text-gray-600">${error.message}</div>
+                        <div class="mt-4">
+                            <button onclick="window.location.reload()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Try Again</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('loadingMessage').classList.add('hidden');
+                document.getElementById('navigationButtons').classList.add('hidden');
+                return false;
+            }
+        }
+        
+        // Save answers and timer to sessionStorage (exam-specific)
+        function saveProgress() {
+            sessionStorage.setItem(`${examKey}_answers`, JSON.stringify(answers));
+            sessionStorage.setItem(`${examKey}_timeLeft`, timeLeft);
+        }
+        
+        // Timer function
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                saveProgress(); // Save timer progress
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+            }, 1000);
+        }
+        
+        // Display a question
+        function displayQuestion(index) {
+            const question = questions[index];
+            const examContent = document.getElementById('examContent');
+            const questionId = `q_${index}`;
+            
+            let optionsHtml = '';
+            
+            if (question.type === 'multiple-choice') {
+                // Handle both array and object formats for options
+                let optionsToRender = [];
+                
+                if (Array.isArray(question.options)) {
+                    // If options is an array of objects with text and isCorrect properties
+                    optionsToRender = question.options.map((opt, idx) => ({
+                        key: String.fromCharCode(65 + idx), // A, B, C, D
+                        text: opt.text || opt,
+                        isCorrect: opt.isCorrect || false
+                    }));
+                } else if (typeof question.options === 'object' && question.options !== null) {
+                    // If options is an object with key-value pairs
+                    optionsToRender = Object.entries(question.options).map(([key, value]) => ({
+                        key: key,
+                        text: value,
+                        isCorrect: question.correctAnswer === key
+                    }));
+                }
+                
+                optionsHtml = `
+                    <div class="space-y-2">
+                        ${optionsToRender.map(option => `
+                            <div class="option-item p-3 border rounded-md cursor-pointer hover:bg-gray-50 
+                                ${answers[questionId] === option.key ? 'bg-indigo-50 border-indigo-300' : 'border-gray-200'}" 
+                                data-option="${option.key}">
+                                <span class="font-medium">${option.key}.</span> ${option.text || option.value || ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (question.type === 'true-false') {
+                optionsHtml = `
+                    <div class="space-y-2">
+                        <div class="option-item p-3 border rounded-md cursor-pointer hover:bg-gray-50 ${answers[questionId] === 'true' ? 'option-selected' : ''}" 
+                             data-option="true">
+                            <span class="font-medium">True</span>
+                        </div>
+                        <div class="option-item p-3 border rounded-md cursor-pointer hover:bg-gray-50 ${answers[questionId] === 'false' ? 'option-selected' : ''}" 
+                             data-option="false">
+                            <span class="font-medium">False</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            examContent.innerHTML = `
+                <div class="question-container">
+                    <h2 class="text-lg font-semibold mb-4">Question ${index + 1} of ${questions.length}</h2>
+                    <p class="text-gray-800 mb-4">${question.text}</p>
+                    ${optionsHtml}
+                </div>
+            `;
+            
+            // Add event listeners to options
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove selected class from all options
+                    document.querySelectorAll('.option-item').forEach(opt => {
+                        opt.classList.remove('option-selected');
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('option-selected');
+                    
+                    // Save the answer
+                    answers[questionId] = this.getAttribute('data-option');
+                    saveProgress(); // Save answers progress
+                });
+            });
+            
+            // Update navigation buttons
+            updateNavigationButtons();
+        }
+        
+        // Update navigation buttons based on current question
+        function updateNavigationButtons() {
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            const submitExam = document.getElementById('submitExam');
+            
+            // Show/hide previous button
+            prevButton.disabled = currentQuestionIndex === 0;
+            prevButton.classList.toggle('opacity-50', currentQuestionIndex === 0);
+            
+            // Show/hide next button and submit button
+            if (currentQuestionIndex === questions.length - 1) {
+                nextButton.classList.add('hidden');
+                submitExam.classList.remove('hidden');
+            } else {
+                nextButton.classList.remove('hidden');
+                submitExam.classList.add('hidden');
+            }
+        }
+        
+        // Submit exam function
+        async function submitExam() {
+            // Show loading indicator
+            document.getElementById('examContent').innerHTML = `
+                <div class="text-center py-12">
+                    <svg class="animate-spin h-8 w-8 mx-auto text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-4 text-gray-600">Submitting your examination...</p>
+                </div>
+            `;
+            
+            // Hide navigation buttons
+            document.getElementById('navigationButtons').classList.add('hidden');
+            document.getElementById('submitExam').classList.add('hidden');
+            
+            // Calculate score
+            let score = 0;
+            let totalQuestions = questions.length;
+            let totalPoints = 0;
+            let earnedPoints = 0;
+            
+            questions.forEach((question, index) => {
+                const questionId = `q_${index}`;
+                const points = question.points || 1;
+                totalPoints += points;
+                
+                // Handle different question types
+                if (question.type === 'multiple-choice') {
+                    // For multiple-choice, check if the selected answer matches the correct answer
+                    const selectedOption = answers[questionId];
+                    if (selectedOption) {
+                        // Check if options is an array (new format) or object (old format)
+                        if (Array.isArray(question.options)) {
+                            // New format: options is an array of objects with isCorrect property
+                            const correctOption = question.options.find(opt => opt.isCorrect);
+                            if (correctOption && correctOption.key === selectedOption) {
+                                score++;
+                                earnedPoints += points;
+                            }
+                        } else if (question.correctAnswer === selectedOption) {
+                            // Old format: correctAnswer directly matches the option key
+                            score++;
+                            earnedPoints += points;
+                        }
+                    }
+                } else if (question.type === 'true-false') {
+                    // For true/false questions
+                    if (answers[questionId] === String(question.correctAnswer)) {
+                        score++;
+                        earnedPoints += points;
+                    }
+                } else {
+                    // Fallback for other question types
+                    if (answers[questionId] === question.correctAnswer) {
+                        score++;
+                        earnedPoints += points;
+                    }
+                }
+            });
+            
+            // Prepare result data with new multi-subject structure
+            const resultData = {
+                studentName,
+                classId,
+                className,
+                subjectId,
+                subjectName,
+                examId,
+                examTitle,
+                score: Number(score),
+                totalQuestions: Number(totalQuestions),
+                earnedPoints: Number(earnedPoints),
+                totalPoints: Number(totalPoints),
+                percentage: Math.round((score / totalQuestions) * 100),
+                answers: answers,
+                submittedAt: new Date().toISOString()
+            };
+            
+            try {
+                // Save the result using the new multi-subject database function
+                await firebaseDB.saveResultWithSubject(resultData);
+
+                // Store result in sessionStorage for result page
+                sessionStorage.setItem('examResult', JSON.stringify(resultData));
+
+                // Clear exam-specific session storage
+                sessionStorage.removeItem(`${examKey}_answers`);
+                sessionStorage.removeItem(`${examKey}_timeLeft`);
+
+                // Redirect to result page
+                window.location.href = 'result.html';
+            } catch (error) {
+                console.error('Error submitting exam:', error);
+                alert('There was an error submitting your exam. Please try again.');
+
+                // Show exam content again
+                displayQuestion(currentQuestionIndex);
+                document.getElementById('navigationButtons').classList.remove('hidden');
+                document.getElementById('submitExam').classList.remove('hidden');
+            }
+
+        }
+        
+        // Initialize the exam
+        async function initExam() {
+            // Fetch questions from Firebase
+            const questionsLoaded = await fetchQuestions();
+            
+            // Only proceed if questions were loaded successfully
+            if (questionsLoaded) {
+                document.getElementById('loadingMessage').classList.add('hidden');
+                document.getElementById('navigationButtons').classList.remove('hidden');
+                
+                // Display first question
+                displayQuestion(currentQuestionIndex);
+                
+                // Start the timer
+                startTimer();
+            }
+        }
+        
+        // Event listeners for navigation buttons
+        document.getElementById('prevButton').addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion(currentQuestionIndex);
+            }
+        });
+        
+        document.getElementById('nextButton').addEventListener('click', () => {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion(currentQuestionIndex);
+            }
+        });
+        
+        document.getElementById('submitButton').addEventListener('click', submitExam);
+        
+        // Initialize the exam when page loads
+        window.addEventListener('load', initExam);
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Created Successfully - Online Exam System</title>
+    <!-- Include Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-16">
+        <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-8">
+                <!-- Success Icon -->
+                <div class="flex justify-center mb-6">
+                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
+                        <i class="fas fa-check text-green-600 text-3xl"></i>
+                    </div>
+                </div>
+                
+                <!-- Success Message -->
+                <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">Exam Created Successfully!</h1>
+                <p class="text-gray-600 text-center mb-8">Your exam has been created and is now ready for students to take.</p>
+                
+                <!-- Exam Details -->
+                <div id="examDetails" class="bg-gray-50 p-6 rounded-lg mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Exam Title</p>
+                            <p id="examTitle" class="font-medium text-gray-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Class</p>
+                            <p id="examClass" class="font-medium text-gray-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Subject</p>
+                            <p id="examSubject" class="font-medium text-gray-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Exam Code</p>
+                            <div class="flex items-center">
+                                <span id="examCode" class="font-mono bg-gray-100 px-3 py-1 rounded text-lg font-bold text-indigo-700"></span>
+                                <button id="copyCodeBtn" class="ml-2 text-indigo-600 hover:text-indigo-800" title="Copy code">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Instructions -->
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-8">
+                    <h3 class="font-medium text-blue-800 mb-2">How to share this exam with students:</h3>
+                    <ol class="list-decimal list-inside text-blue-700 space-y-1 text-sm">
+                        <li>Share the exam code with your students</li>
+                        <li>Students can join the exam by entering the code on the student login page</li>
+                        <li>You can view results in the Results tab of your dashboard</li>
+                    </ol>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+                    <a href="admin-dashboard-modern.html" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-tachometer-alt mr-2"></i>
+                        Go to Dashboard
+                    </a>
+                    <button id="copyLinkBtn" class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-link mr-2"></i>
+                        Copy Exam Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get exam data from session storage
+            const examData = JSON.parse(sessionStorage.getItem('lastCreatedExam'));
+            
+            if (!examData) {
+                // Redirect back to exam creator if no exam data is found
+                window.location.href = 'exam-creator.html';
+                return;
+            }
+            
+            // Populate exam details
+            document.getElementById('examTitle').textContent = examData.title || 'Untitled Exam';
+            document.getElementById('examClass').textContent = examData.className || 'N/A';
+            document.getElementById('examSubject').textContent = examData.subjectName || 'N/A';
+            document.getElementById('examCode').textContent = examData.code || 'N/A';
+            
+            // Copy code button
+            document.getElementById('copyCodeBtn').addEventListener('click', function() {
+                const code = examData.code;
+                navigator.clipboard.writeText(code).then(() => {
+                    const icon = this.querySelector('i');
+                    icon.className = 'fas fa-check';
+                    setTimeout(() => {
+                        icon.className = 'far fa-copy';
+                    }, 2000);
+                });
+            });
+            
+            // Copy exam link button
+            document.getElementById('copyLinkBtn').addEventListener('click', function() {
+                const examUrl = `${window.location.origin}/student-login.html?examCode=${encodeURIComponent(examData.code)}`;
+                navigator.clipboard.writeText(examUrl).then(() => {
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check mr-2"></i>Link Copied!';
+                    this.classList.remove('border-gray-300', 'text-gray-700', 'bg-white', 'hover:bg-gray-50');
+                    this.classList.add('border-green-300', 'text-green-700', 'bg-green-50');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                        this.classList.remove('border-green-300', 'text-green-700', 'bg-green-50');
+                        this.classList.add('border-gray-300', 'text-gray-700', 'bg-white', 'hover:bg-gray-50');
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

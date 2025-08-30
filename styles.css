@@ -1,0 +1,172 @@
+/* Custom styles to complement Tailwind CSS */
+.exam-card {
+    transition: all 0.3s ease;
+}
+
+.exam-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.option-selected {
+    border-color: #4F46E5;
+    background-color: #EEF2FF;
+}
+
+/* Animation for loading states */
+.loading-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Custom styles for the admin dashboard */
+.result-row:nth-child(even) {
+    background-color: #F9FAFB;
+}
+
+.result-row:hover {
+    background-color: #F3F4F6;
+}
+
+/* =============================
+   Brand Theme (CSS Variables)
+   Palette provided by user:
+   #1A2A80, #3B38A0, #7A85C1, #B2B0E8
+   ============================= */
+:root {
+  /* Core palette */
+  --brand-primary: #3B38A0;  /* Primary */
+  --brand-primary-strong: #fff; /* Deep accent */
+  --brand-accent: #B2B0E8;   /* Accent highlights */
+  --brand-muted: #7A85C1;    /* Muted secondary */
+
+  /* Text colors */
+  --text-primary: #0f172a;   /* slate-900 */
+  --text-secondary: #334155; /* slate-700 */
+  --text-inverse: #ffffff;
+
+  /* Surfaces */
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;      /* slate-50 */
+  --surface-2: #eef2ff;      /* indigo-50 but close to brand */
+
+  /* Borders/Shadows */
+  --border-color: rgba(26, 42, 128, 0.15);
+  --ring-color: rgba(59, 56, 160, 0.3);
+
+  /* Gradients */
+  --bg-start: #F7F4EA;
+  --bg-mid:   #DCDCDC;
+  --bg-end:   #7A85C1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #333;   /* slate-200 */
+    --text-secondary: #666; /* slate-300 */
+    --surface-0: #0b102b;      /* deep navy */
+    --surface-1: #0f1638;
+    --surface-2: #151f52;
+    --border-color: rgba(178, 176, 232, 0.24);
+    --ring-color: rgba(178, 176, 232, 0.35);
+    /* Keep brand hues consistent but shift gradient subtly */
+    --bg-start: #F7F4EA;
+    --bg-mid:   #DCDCDC;
+    --bg-end:   #3B38A0;
+  }
+}
+
+/* App background utility */
+.app-bg {
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(178,176,232,0.18), transparent 60%),
+              radial-gradient(900px 500px at 90% 20%, rgba(122,133,193,0.16), transparent 60%),
+              linear-gradient(135deg, var(--bg-start) 0%, var(--bg-mid) 50%, var(--bg-end) 100%);
+}
+
+/* Brand text colors */
+.text-brand-primary { color: var(--brand-primary); }
+.text-brand-strong { color: var(--brand-primary-strong); }
+.text-brand-accent  { color: var(--brand-accent); }
+.text-muted { color: var(--text-secondary); }
+
+/* Cards / Surfaces */
+.card {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  box-shadow: 0 10px 24px -12px rgba(26,42,128,0.25), 0 6px 12px -8px rgba(26,42,128,0.20);
+}
+
+/* Buttons */
+.btn { 
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .5rem; font-weight: 600; border-radius: .75rem; 
+  padding: .75rem 1rem; transition: all .2s ease;
+}
+.btn:focus { outline: none; box-shadow: 0 0 0 3px var(--ring-color); }
+.btn-primary { 
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+}
+.btn-primary:hover { background: var(--brand-primary-strong); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: white;
+  color: black;
+}
+.btn-secondary:hover { filter: brightness(0.95); transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent; color: var(--brand-primary); border: 1px solid var(--brand-primary);
+}
+.btn-outline:hover { background: rgba(59,56,160,0.08); }
+
+/* Inputs */
+.input, .select, .textarea {
+  background: var(--surface-0); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: .75rem; padding: .65rem .9rem;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--ring-color); outline: none;
+}
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .6rem; border-radius: 9999px; font-weight: 600; font-size: .75rem; }
+.badge-primary { background: rgba(59,56,160,0.12); color: var(--brand-primary); }
+.badge-strong  { background: rgba(26,42,128,0.12); color: var(--brand-primary-strong); }
+.badge-accent  { background: rgba(178,176,232,0.14); color: #281f69; }
+
+/* Sidebar */
+.sidebar {
+  background: linear-gradient(180deg, var(--brand-primary-strong) 0%, #1a2266 100%);
+  color: var(--text-inverse);
+}
+.sidebar .nav-item { color: rgba(255,255,255,0.8); border-radius: .75rem; }
+.sidebar .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sidebar .nav-item.active { background: rgba(255,255,255,0.14); color: #fff; }
+
+/* Tables */
+.table thead th { color: var(--text-secondary); font-weight: 700; }
+.table tbody tr { transition: background .2s ease; }
+.table tbody tr:hover { background: var(--surface-1); }
+
+/* Modals */
+.modal-backdrop { background: rgba(15, 23, 42, 0.60); backdrop-filter: blur(4px); }
+.modal-card { background: var(--surface-0); border: 1px solid var(--border-color); border-radius: 1rem; }
+
+/* Utility overrides for selected options */
+.option-selected {
+  border-color: var(--brand-primary);
+  background-color: rgba(178,176,232,0.24);
+}

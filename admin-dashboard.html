@@ -1,0 +1,300 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-indigo-600">Admin Dashboard</h1>
+                <button id="logoutButton" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    Logout
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-2">Filter Results</h2>
+                <div class="flex flex-wrap gap-4">
+                    <div class="w-full md:w-auto">
+                        <label for="classFilter" class="block text-sm font-medium text-gray-700 mb-1">Class</label>
+                        <select id="classFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">All Classes</option>
+                            <option value="primary1">Primary 1</option>
+                            <option value="primary2">Primary 2</option>
+                            <option value="primary3">Primary 3</option>
+                            <option value="primary4">Primary 4</option>
+                            <option value="primary5">Primary 5</option>
+                        </select>
+                    </div>
+                    
+                    <div class="w-full md:w-auto">
+                        <label for="sectionFilter" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                        <select id="sectionFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">All Sections</option>
+                            <option value="orange">Orange</option>
+                            <option value="lemon">Lemon</option>
+                            <option value="yellow">Yellow</option>
+                        </select>
+                    </div>
+                    
+                    <div class="w-full md:w-auto">
+                        <label for="scoreFilter" class="block text-sm font-medium text-gray-700 mb-1">Score</label>
+                        <select id="scoreFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">All Scores</option>
+                            <option value="passing">Passing (≥ 50%)</option>
+                            <option value="failing">Failing (< 50%)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Results will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="noResults" class="text-center py-8 hidden">
+                <p class="text-gray-500">No results found.</p>
+            </div>
+            
+            <div class="mt-6">
+                <h2 class="text-lg font-semibold mb-2">Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 p-4 rounded-md">
+                        <h3 class="text-sm font-medium text-indigo-800">Total Examinations</h3>
+                        <p id="totalExams" class="text-2xl font-bold text-indigo-600">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-md">
+                        <h3 class="text-sm font-medium text-green-800">Average Score</h3>
+                        <p id="averageScore" class="text-2xl font-bold text-green-600">0%</p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-md">
+                        <h3 class="text-sm font-medium text-yellow-800">Pass Rate</h3>
+                        <p id="passRate" class="text-2xl font-bold text-yellow-600">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Move all scripts to the end of body in correct order -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // Check if admin is logged in
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (!user) {
+                // No user is signed in, redirect to login
+                window.location.href = 'admin-login.html';
+            } else {
+                // User is signed in, listen for results
+                listenForResults();
+            }
+        });
+        // Logout function
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            firebase.auth().signOut().then(function() {
+                window.location.href = 'admin-login.html';
+            }).catch(function(error) {
+                console.error('Error signing out:', error);
+            });
+        });
+        // Global variable to store all results
+        let allResults = [];
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+        // Calculate percentage
+        function calculatePercentage(score, total) {
+            score = Number(score);
+            total = Number(total);
+            if (!score || !total) return 0;
+            return Math.round((score / total) * 100);
+        }
+        // Display results in table
+        function displayResults(results) {
+            const resultsTableBody = document.getElementById('resultsTableBody');
+            const noResults = document.getElementById('noResults');
+            if (results.length === 0) {
+                resultsTableBody.innerHTML = '';
+                noResults.classList.remove('hidden');
+                updateSummary([]);
+                return;
+            }
+            noResults.classList.add('hidden');
+            resultsTableBody.innerHTML = '';
+            // Debug: Check if results have proper IDs
+            console.log('Results to display:', results);
+            results.forEach((result, index) => {
+                if (!result.id) {
+                    console.warn(`Result at index ${index} is missing an ID:`, result);
+                }
+            });
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                const percentage = calculatePercentage(result.score, result.totalQuestions);
+                const date = result.timestamp ? formatDate(result.timestamp.toDate()) : formatDate(result.submittedAt);
+                // Make sure result.id exists, use a fallback if not
+                const resultId = result.id || `temp-id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                const scoreDisplay = (typeof result.score === 'number' && typeof result.totalQuestions === 'number' && !isNaN(result.score) && !isNaN(result.totalQuestions))
+                    ? `${result.score}/${result.totalQuestions} (${percentage}%)`
+                    : 'N/A';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${result.studentName}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${result.studentClass}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${scoreDisplay}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-500">${date}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button data-id="${resultId}" class="delete-result text-red-600 hover:text-red-900 focus:outline-none">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                resultsTableBody.appendChild(row);
+                // Add event listener directly to this button instead of using querySelectorAll later
+                // This ensures the event listener is attached immediately
+                const deleteButton = row.querySelector('.delete-result');
+                deleteButton.addEventListener('click', handleDeleteClick);
+            });
+            // Update summary
+            updateSummary(results);
+        }
+        // Separate function to handle delete button clicks
+        async function handleDeleteClick() {
+            const resultId = this.getAttribute('data-id');
+            console.log('Attempting to delete result with ID:', resultId);
+            if (confirm('Are you sure you want to delete this result? The student will be able to take the exam again.')) {
+                try {
+                    // Verify firebaseDB is available
+                    if (!window.firebaseDB || typeof window.firebaseDB.deleteResult !== 'function') {
+                        throw new Error('Firebase deleteResult function is not available');
+                    }
+                    await window.firebaseDB.deleteResult(resultId);
+                    alert('Result deleted successfully!');
+                    listenForResults(); // Reload the results
+                } catch (error) {
+                    console.error('Error deleting result:', error);
+                    alert('Error deleting result: ' + error.message);
+                }
+            }
+        }
+        // Update summary statistics
+        function updateSummary(results) {
+            document.getElementById('totalExams').textContent = results.length;
+            if (results.length === 0) {
+                document.getElementById('averageScore').textContent = '0%';
+                document.getElementById('passRate').textContent = '0%';
+                return;
+            }
+            // Calculate average score
+            const totalPercentage = results.reduce((sum, result) => {
+                return sum + calculatePercentage(result.score, result.totalQuestions);
+            }, 0);
+            const averagePercentage = Math.round(totalPercentage / results.length);
+            document.getElementById('averageScore').textContent = averagePercentage + '%';
+            // Calculate pass rate
+            const passingResults = results.filter(result => {
+                return calculatePercentage(result.score, result.totalQuestions) >= 50;
+            });
+            const passRate = Math.round((passingResults.length / results.length) * 100);
+            document.getElementById('passRate').textContent = passRate + '%';
+        }
+        // Filter results
+        function filterResults() {
+            const classFilter = document.getElementById('classFilter').value;
+            const sectionFilter = document.getElementById('sectionFilter').value;
+            const scoreFilter = document.getElementById('scoreFilter').value;
+            let filteredResults = allResults;
+            // Filter by class
+            if (classFilter !== 'all') {
+                filteredResults = filteredResults.filter(result => {
+                    return result.studentClass.startsWith(classFilter);
+                });
+            }
+            // Filter by section
+            if (sectionFilter !== 'all') {
+                filteredResults = filteredResults.filter(result => {
+                    return result.studentClass.endsWith(sectionFilter);
+                });
+            }
+            // Filter by score
+            if (scoreFilter !== 'all') {
+                filteredResults = filteredResults.filter(result => {
+                    const percentage = calculatePercentage(result.score, result.totalQuestions);
+                    if (scoreFilter === 'passing') {
+                        return percentage >= 50;
+                    } else {
+                        return percentage < 50;
+                    }
+                });
+            }
+            displayResults(filteredResults);
+        }
+        // Add event listeners to filters
+        document.getElementById('classFilter').addEventListener('change', filterResults);
+        document.getElementById('sectionFilter').addEventListener('change', filterResults);
+        document.getElementById('scoreFilter').addEventListener('change', filterResults);
+        // Load results from Firebase
+        function listenForResults() {
+            // Show loading indicator
+            document.getElementById('resultsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center">
+                        <svg class="animate-spin h-8 w-8 mx-auto text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="mt-4 text-gray-600">Loading results...</p>
+                    </td>
+                </tr>
+            `;
+            db.collection('examResults').onSnapshot(snapshot => {
+                allResults = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                filterResults();
+            }, error => {
+                console.error('Error loading results:', error);
+                document.getElementById('resultsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-red-600">
+                            Error loading results. Please refresh the page to try again.
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html> -->

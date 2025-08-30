@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initialize Questions - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">Initialize Questions</h1>
+        <p class="mb-4">This will add sample questions for all classes and sections to your Firebase database.</p>
+        
+        <button id="initButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Initialize Questions
+        </button>
+        <div id="status" class="mt-4 text-center"></div>
+        
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-sm text-indigo-600 hover:text-indigo-500">
+                Back to Home
+            </a>
+            <span class="mx-2">|</span>
+            <a href="admin-dashboard.html" class="text-sm text-indigo-600 hover:text-indigo-500">
+                Go to Admin Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAUIdE_Vb_sdWoSU7_eSjgx0pjz6_Tks7s",
+            authDomain: "tes-quiz-app-3f0a1.firebaseapp.com",
+            projectId: "tes-quiz-app-3f0a1",
+            storageBucket: "tes-quiz-app-3f0a1.appspot.com",
+            messagingSenderId: "701178639009",
+            appId: "1:701178639009:web:628bae20116f173edff6e0",
+            measurementId: "G-EGCK4HSTB8"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // Initialize sample questions for each class
+        async function initializeSampleQuestions() {
+            // Sample questions for each class and section
+            const classQuestions = {
+                "Primary 1 - Orange": [
+                    {
+                        id: "p1o_0",
+                        question: "What is 1 + 1?",
+                        options: [
+                            { text: "1", isCorrect: false },
+                            { text: "2", isCorrect: true },
+                            { text: "3", isCorrect: false },
+                            { text: "4", isCorrect: false }
+                        ],
+                        correctAnswer: "2",
+                        class: "Primary 1",
+                        section: "Orange",
+                        order: 0
+                    },
+                    {
+                        id: "p1o_1",
+                        question: "Which animal says 'meow'?",
+                        options: [
+                            { text: "Dog", isCorrect: false },
+                            { text: "Cat", isCorrect: true },
+                            { text: "Cow", isCorrect: false },
+                            { text: "Lion", isCorrect: false }
+                        ],
+                        correctAnswer: "Cat",
+                        class: "Primary 1",
+                        section: "Orange",
+                        order: 1
+                    }
+                ],
+                "Primary 1 - Lemon": [
+                    {
+                        id: "p1l_0",
+                        question: "What color is the sky?",
+                        options: [
+                            { text: "Red", isCorrect: false },
+                            { text: "Green", isCorrect: false },
+                            { text: "Blue", isCorrect: true },
+                            { text: "Yellow", isCorrect: false }
+                        ],
+                        correctAnswer: "Blue",
+                        class: "Primary 1",
+                        section: "Lemon",
+                        order: 0
+                    },
+                    {
+                        id: "p1l_1",
+                        question: "How many days are in a week?",
+                        options: [
+                            { text: "5", isCorrect: false },
+                            { text: "6", isCorrect: false },
+                            { text: "7", isCorrect: true },
+                            { text: "8", isCorrect: false }
+                        ],
+                        correctAnswer: "7",
+                        class: "Primary 1",
+                        section: "Lemon",
+                        order: 1
+                    }
+                ],
+                "Primary 1 - Yellow": [
+                    {
+                        id: "p1y_0",
+                        question: "Which shape has 3 sides?",
+                        options: [
+                            { text: "Circle", isCorrect: false },
+                            { text: "Square", isCorrect: false },
+                            { text: "Triangle", isCorrect: true },
+                            { text: "Rectangle", isCorrect: false }
+                        ],
+                        correctAnswer: "Triangle",
+                        class: "Primary 1",
+                        section: "Yellow",
+                        order: 0
+                    },
+                    {
+                        id: "p1y_1",
+                        question: "What comes after the number 9?",
+                        options: [
+                            { text: "8", isCorrect: false },
+                            { text: "10", isCorrect: true },
+                            { text: "11", isCorrect: false },
+                            { text: "12", isCorrect: false }
+                        ],
+                        correctAnswer: "10",
+                        class: "Primary 1",
+                        section: "Yellow",
+                        order: 1
+                    }
+                ],
+                "Primary 2 - Orange": [
+                    {
+                        question: "What is 5 + 7?",
+                        options: ["10", "11", "12", "13"],
+                        correctAnswer: "12"
+                    },
+                    {
+                        question: "Which planet do we live on?",
+                        options: ["Mars", "Earth", "Jupiter", "Venus"],
+                        correctAnswer: "Earth"
+                    }
+                ],
+                "Primary 2 - Lemon": [
+                    {
+                        question: "How many hours are in a day?",
+                        options: ["12", "18", "24", "36"],
+                        correctAnswer: "24"
+                    },
+                    {
+                        question: "Which animal has a long neck?",
+                        options: ["Elephant", "Giraffe", "Lion", "Zebra"],
+                        correctAnswer: "Giraffe"
+                    }
+                ],
+                "Primary 2 - Yellow": [
+                    {
+                        question: "What is 10 - 3?",
+                        options: ["5", "6", "7", "8"],
+                        correctAnswer: "7"
+                    },
+                    {
+                        question: "Which season comes after summer?",
+                        options: ["Winter", "Spring", "Fall", "None of these"],
+                        correctAnswer: "Fall"
+                    }
+                ],
+                "Primary 3 - Orange": [
+                    {
+                        question: "What is 4 × 6?",
+                        options: ["18", "20", "24", "28"],
+                        correctAnswer: "24"
+                    },
+                    {
+                        question: "Which is the largest ocean?",
+                        options: ["Atlantic", "Indian", "Arctic", "Pacific"],
+                        correctAnswer: "Pacific"
+                    }
+                ],
+                "Primary 3 - Lemon": [
+                    {
+                        question: "How many sides does a hexagon have?",
+                        options: ["4", "5", "6", "8"],
+                        correctAnswer: "6"
+                    },
+                    {
+                        question: "Which gas do plants absorb from the air?",
+                        options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"],
+                        correctAnswer: "Carbon Dioxide"
+                    }
+                ],
+                "Primary 3 - Yellow": [
+                    {
+                        question: "What is 25 ÷ 5?",
+                        options: ["3", "4", "5", "6"],
+                        correctAnswer: "5"
+                    },
+                    {
+                        question: "Which is not a primary color?",
+                        options: ["Red", "Blue", "Green", "Yellow"],
+                        correctAnswer: "Green"
+                    }
+                ],
+                "Primary 4 - Orange": [
+                    {
+                        question: "What is the capital of France?",
+                        options: ["London", "Berlin", "Paris", "Madrid"],
+                        correctAnswer: "Paris"
+                    },
+                    {
+                        question: "How many continents are there?",
+                        options: ["5", "6", "7", "8"],
+                        correctAnswer: "7"
+                    }
+                ],
+                "Primary 4 - Lemon": [
+                    {
+                        question: "What is 12 × 12?",
+                        options: ["124", "144", "156", "168"],
+                        correctAnswer: "144"
+                    },
+                    {
+                        question: "Which planet is known as the Red Planet?",
+                        options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                        correctAnswer: "Mars"
+                    }
+                ],
+                "Primary 4 - Yellow": [
+                    {
+                        question: "What is the largest mammal?",
+                        options: ["Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
+                        correctAnswer: "Blue Whale"
+                    },
+                    {
+                        question: "How many degrees are in a right angle?",
+                        options: ["45", "90", "180", "360"],
+                        correctAnswer: "90"
+                    }
+                ],
+                "Primary 5 - Orange": [
+    {
+        question: "What is Mobirise?",
+        options: ["A video game", "A photo app", "A website builder", "A phone"],
+        correctAnswer: "A website builder"
+    },
+    {
+        question: "Why do people use Mobirise?",
+        options: ["To play games", "To draw cartoons", "To create websites", "To write books"],
+        correctAnswer: "To create websites"
+    },
+    {
+        question: "Can you use Mobirise to learn how to make websites?",
+        options: ["No", "Yes", "Only with a teacher", "Only with money"],
+        correctAnswer: "Yes"
+    },
+    {
+        question: "What can you share with a website?",
+        options: ["Videos only", "Books", "Information", "Clothes"],
+        correctAnswer: "Information"
+    },
+    {
+        question: "What is a wireframe?",
+        options: ["A picture frame", "A type of computer", "A rough sketch of a website", "A video"],
+        correctAnswer: "A rough sketch of a website"
+    },
+    {
+        question: "What does a wireframe show?",
+        options: ["Where buttons, pictures, and text go", "The color of the site", "The logo only", "Only pictures"],
+        correctAnswer: "Where buttons, pictures, and text go"
+    },
+    {
+        question: "Why is using a wireframe helpful?",
+        options: ["To plan the website", "To draw cartoons", "To color pages", "To write poems"],
+        correctAnswer: "To plan the website"
+    },
+    {
+        question: "What is wireframing like?",
+        options: ["Playing a game", "Drawing a map before a treasure hunt", "Taking photos", "Painting a wall"],
+        correctAnswer: "Drawing a map before a treasure hunt"
+    },
+    {
+        question: "What assignment was given in your notes?",
+        options: ["Write a poem", "Build a robot", "Sketch your school wireframe", "Watch a movie"],
+        correctAnswer: "Sketch your school wireframe"
+    },
+    {
+        question: "What can you add to make a website interesting?",
+        options: ["Just one word", "Words, pictures, and buttons", "Nothing", "Only colors"],
+        correctAnswer: "Words, pictures, and buttons"
+    },
+    {
+        question: "Why is adding text important?",
+        options: ["To make music", "To help people understand the website", "To draw cartoons", "To share jokes"],
+        correctAnswer: "To help people understand the website"
+    },
+    {
+        question: "What does an image do on a website?",
+        options: ["Show what you’re talking about", "Make the site heavy", "Add errors", "Play a song"],
+        correctAnswer: "Show what you’re talking about"
+    },
+    {
+        question: "What do buttons do on a website?",
+        options: ["Change the background", "Make the page louder", "Let people click and go somewhere", "Add lights"],
+        correctAnswer: "Let people click and go somewhere"
+    },
+    {
+        question: "Where can you add buttons on a website?",
+        options: ["Inside text only", "Anywhere you want", "Only at the bottom", "On paper"],
+        correctAnswer: "Anywhere you want"
+    },
+    {
+        question: "Can you add both text and images to a Mobirise website?",
+        options: ["No", "Yes", "Only one", "Only pictures"],
+        correctAnswer: "Yes"
+    },
+    {
+        question: "Which of these helps make a website fun and interesting?",
+        options: ["Text only", "Text and images only", "Text, images, and buttons", "A blank page"],
+        correctAnswer: "Text, images, and buttons"
+    },
+    {
+        question: "If you don’t use a wireframe, what could happen?",
+        options: ["The site will be colorful", "You may get confused", "The website will sing", "Nothing"],
+        correctAnswer: "You may get confused"
+    },
+    {
+        question: "What can you do after planning your wireframe?",
+        options: ["Leave the project", "Add real content like pictures and buttons", "Erase it", "Watch TV"],
+        correctAnswer: "Add real content like pictures and buttons"
+    },
+    {
+        question: "Who can use Mobirise to create websites?",
+        options: ["Only adults", "Only coders", "Anyone, even beginners", "Only teachers"],
+        correctAnswer: "Anyone, even beginners"
+    },
+    {
+        question: "What helps you decide where things go on your webpage?",
+        options: ["Guessing", "A wireframe", "A video", "A game"],
+        correctAnswer: "A wireframe"
+    }
+],
+
+                "Primary 5 - Lemon": [
+                    {
+                        question: "What is 15% of 200?",
+                        options: ["15", "20", "30", "35"],
+                        correctAnswer: "30"
+                    },
+                    {
+                        question: "Which organ pumps blood around the body?",
+                        options: ["Lungs", "Brain", "Heart", "Liver"],
+                        correctAnswer: "Heart"
+                    }
+                ],
+                "Primary 5 - Yellow": [
+                    {
+                        question: "What is the square root of 81?",
+                        options: ["7", "8", "9", "10"],
+                        correctAnswer: "9"
+                    },
+                    {
+                        question: "Which gas makes up most of Earth's atmosphere?",
+                        options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"],
+                        correctAnswer: "Nitrogen"
+                    }
+                ]
+            };
+            
+            try {
+                // Check if questions already exist
+                const snapshot = await db.collection('questions').limit(1).get();
+                if (!snapshot.empty) {
+                    return { success: true, message: "Questions already exist in the database." };
+                }
+                
+                // Add questions to Firestore
+                const batch = db.batch();
+                
+                for (const [classSection, questions] of Object.entries(classQuestions)) {
+                    const [className, section] = classSection.split(" - ");
+                    
+                    questions.forEach((question, index) => {
+                        const docRef = db.collection('questions').doc(`${className.replace(/\s+/g, '')}_${section}_${index}`);
+                        batch.set(docRef, {
+                            ...question,
+                            class: className,
+                            section: section,
+                            order: index
+                        });
+                    });
+                }
+                
+                await batch.commit();
+                return { success: true, message: "Sample questions initialized successfully" };
+            } catch (error) {
+                console.error("Error initializing questions:", error);
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Add event listener to init button
+        document.getElementById('initButton').addEventListener('click', function() {
+            this.disabled = true;
+            this.textContent = 'Initializing...';
+            document.getElementById('status').textContent = 'Adding sample questions to database...';
+            
+            initializeSampleQuestions().then((result) => {
+                if (result.success) {
+                    this.textContent = 'Initialization Complete!';
+                    document.getElementById('status').innerHTML = result.message + '<br><a href="admin-dashboard.html" class="text-indigo-600">Go to Admin Dashboard</a>';
+                } else {
+                    this.disabled = false;
+                    this.textContent = 'Try Again';
+                    document.getElementById('status').textContent = 'Error: ' + result.message;
+                }
+            }).catch(error => {
+                this.disabled = false;
+                this.textContent = 'Try Again';
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            });
+        });
+    </script>
+</body>
+</html>

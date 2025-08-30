@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Creator - Online Examination System</title>
+    <script src="exam-creator.js" defer></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #trueFalseOptions { display: none; }
+        .option-group { margin-bottom: 0.5rem; }
+        #loadingModal { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-indigo-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Exam Creator</h1>
+            <div class="flex space-x-4">
+                <button id="backBtn" class="px-4 py-2 bg-indigo-700 rounded hover:bg-indigo-800">Back to Management</button>
+                <button id="saveExamBtn" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">Save Exam</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Exam Details Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Exam Details</h2>
+            
+            <form id="examDetailsForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="examTitle" class="block text-sm font-medium text-gray-700 mb-2">Exam Title</label>
+                    <input type="text" id="examTitle" name="examTitle" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Exam Layer</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="examLayer" id="examLayer"  value="10" class="form-radio h-4 w-4 text-indigo-600" >
+                            <span class="ml-2">First Test (10%)</span>  
+                        </label>
+                        <label class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="examLayer" id="examLayer"  value="30" class="form-radio h-4 w-4 text-indigo-600">
+                            <span class="ml-2">Second Test (30%)</span>
+                        </label>
+                        <label class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="examLayer" id="examLayer" value="60" class="form-radio h-4 w-4 text-indigo-600">
+                            <span class="ml-2">Exam (60%)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="examDuration" class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                    <input type="number" id="examDuration" name="examDuration" min="30" max="180" value="30" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="examTotalMarks" class="block text-sm font-medium text-gray-700 mb-2">Total Marks</label>
+                    <input type="number" id="examTotalMarks" name="examTotalMarks" min="10" value="" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="examClass" class="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                    <select id="examClass" name="examClass" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Loading classes...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="examSubject" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <select id="examSubject" name="examSubject" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Loading subjects...</option>
+                    </select>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label for="examDescription" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="examDescription" name="examDescription" rows="3" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+            </form>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Add Questions</h2>
+            
+            <!-- Question Form (Always Visible) -->
+            <div id="questionFormContainer" class="mb-8 p-6 bg-gray-50 rounded-lg">
+                <div class="mb-6">
+                    <label for="questionText" class="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
+                    <textarea id="questionText" name="questionText" rows="3" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="questionType" value="multiple-choice" class="form-radio text-indigo-600" checked>
+                            <span class="ml-2">Multiple Choice</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="questionType" value="true-false" class="form-radio text-indigo-600">
+                            <span class="ml-2">True/False</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Multiple Choice Options -->
+                <div id="optionsContainer">
+                    <div id="optionsList" class="space-y-3 mb-4">
+                        <!-- Options will be added here by JavaScript -->
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button type="button" id="addOptionBtn" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Option
+                        </button>
+                        <span class="text-sm text-gray-500">Mark the correct answer with the radio button</span>
+                    </div>
+                </div>
+                
+                <!-- True/False Options -->
+                <div id="trueFalseOptions" class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Correct Answer</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer hover:bg-gray-50 has-[:checked]:border-indigo-500 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
+                            <input type="radio" name="trueFalseAnswer" value="true" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                            <span class="ml-2">True</span>
+                        </label>
+                        <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer hover:bg-gray-50 has-[:checked]:border-indigo-500 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
+                            <input type="radio" name="trueFalseAnswer" value="false" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                            <span class="ml-2">False</span>
+                        </label>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">Select the correct answer for this true/false question.</p>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="addQuestionBtn" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Add Question
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Added Questions List -->
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Added Questions</h3>
+                <div id="questionsList" class="space-y-4">
+                    <p id="noQuestionsMessage" class="text-center py-4 text-gray-500">
+                        No questions added yet. Add your first question above.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="flex items-center">
+                <svg class="animate-spin h-8 w-8 text-indigo-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-lg">Processing...</span>
+            </div>
+        </div>
+    </div>
+    <script src="exam-creator.js" defer></script>
+    <!-- Load Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Load config -->
+    <script src="config.js"></script>
+    
+    <!-- Initialize Firebase -->
+    <script>
+        // Initialize Firebase
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase initialized');
+            }
+            
+            // Set up firebaseDB
+            window.firebaseDB = {
+                db: firebase.firestore(),
+                auth: firebase.auth(),
+                
+                // Get all classes
+                getClasses: async function() {
+                    try {
+                        const snapshot = await this.db.collection('classes').get();
+                        return snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                    } catch (error) {
+                        console.error('Error getting classes:', error);
+                        throw error;
+                    }
+                },
+                
+                // Get all subjects
+                getSubjects: async function() {
+                    try {
+                        const snapshot = await this.db.collection('subjects').get();
+                        return snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                    } catch (error) {
+                        console.error('Error getting subjects:', error);
+                        throw error;
+                    }
+                },
+                
+                // Add more Firebase functions as needed
+            };
+            
+            console.log('firebaseDB initialized');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            alert('Failed to initialize Firebase. Please check the console for details.');
+        } 
+
+        const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = 'admin-dashboard-modern.html';
+        });
+    } else {
+        console.error('Back button not found');
+    }
+    </script>
+    
+    <!-- Load exam creator -->
+   
+</body>
+</html>

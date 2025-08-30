@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initialize School Data - Online Examination System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="container mx-auto px-4">
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-indigo-600 mb-6 text-center">Initialize School Data</h1>
+            
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h2 class="text-lg font-semibold text-blue-800 mb-2">What this will do:</h2>
+                <ul class="list-disc list-inside text-blue-700 space-y-1">
+                    <li>Create sample classes (Primary 1-6 with sections)</li>
+                    <li>Add common subjects (Mathematics, English, Science, etc.)</li>
+                    <li>Create sample exams for demonstration</li>
+                    <li>Set up admin user account</li>
+                </ul>
+            </div>
+            
+            <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h2 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Important:</h2>
+                <p class="text-yellow-700">Run this only once when setting up your school's exam system. This will add sample data to your Firebase database.</p>
+            </div>
+            
+            <div class="text-center">
+                <button id="initializeBtn" class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg font-semibold">
+                    Initialize School Data
+                </button>
+            </div>
+            
+            <div id="progress" class="mt-8 hidden">
+                <div class="bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="progressText" class="text-center mt-2 text-gray-600">Starting initialization...</p>
+            </div>
+            
+            <div id="results" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-green-600 mb-4">✅ Initialization Complete!</h2>
+                <div class="space-y-2 text-sm">
+                    <p><strong>Classes created:</strong> <span id="classCount">0</span></p>
+                    <p><strong>Subjects created:</strong> <span id="subjectCount">0</span></p>
+                    <p><strong>Sample exams created:</strong> <span id="examCount">0</span></p>
+                </div>
+                
+                <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 class="font-semibold text-green-800 mb-2">Next Steps:</h3>
+                    <ol class="list-decimal list-inside text-green-700 space-y-1">
+                        <li>Go to <a href="admin-login.html" class="underline">Admin Login</a></li>
+                        <li>Login with: <strong>admin</strong> / <strong>password123</strong></li>
+                        <li>Start creating your own exams and managing classes</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        document.getElementById('initializeBtn').addEventListener('click', initializeSchoolData);
+
+        async function initializeSchoolData() {
+            const button = document.getElementById('initializeBtn');
+            const progress = document.getElementById('progress');
+            const results = document.getElementById('results');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            button.disabled = true;
+            button.textContent = 'Initializing...';
+            progress.classList.remove('hidden');
+
+            try {
+                // Step 1: Create Classes
+                updateProgress(10, 'Creating classes...');
+                const classes = await createSampleClasses();
+                document.getElementById('classCount').textContent = classes.length;
+
+                // Step 2: Create Subjects
+                updateProgress(30, 'Creating subjects...');
+                const subjects = await createSampleSubjects();
+                document.getElementById('subjectCount').textContent = subjects.length;
+
+                // Step 3: Create Admin User
+                updateProgress(50, 'Setting up admin user...');
+                await createAdminUser();
+
+                // Step 4: Create Sample Exams
+                updateProgress(70, 'Creating sample exams...');
+                const exams = await createSampleExams(classes, subjects);
+                document.getElementById('examCount').textContent = exams.length;
+
+                // Complete
+                updateProgress(100, 'Initialization complete!');
+                
+                setTimeout(() => {
+                    progress.classList.add('hidden');
+                    results.classList.remove('hidden');
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                alert('Error during initialization: ' + error.message);
+                button.disabled = false;
+                button.textContent = 'Initialize School Data';
+            }
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        async function createSampleClasses() {
+            const classes = [
+                { name: 'Primary 1', section: 'A', description: 'Primary 1 Section A' },
+                { name: 'Primary 1', section: 'B', description: 'Primary 1 Section B' },
+                { name: 'Primary 2', section: 'A', description: 'Primary 2 Section A' },
+                { name: 'Primary 2', section: 'B', description: 'Primary 2 Section B' },
+                { name: 'Primary 3', section: 'A', description: 'Primary 3 Section A' },
+                { name: 'Primary 3', section: 'B', description: 'Primary 3 Section B' },
+                { name: 'Primary 4', section: 'A', description: 'Primary 4 Section A' },
+                { name: 'Primary 4', section: 'B', description: 'Primary 4 Section B' },
+                { name: 'Primary 5', section: 'A', description: 'Primary 5 Section A' },
+                { name: 'Primary 5', section: 'B', description: 'Primary 5 Section B' },
+                { name: 'Primary 6', section: 'A', description: 'Primary 6 Section A' },
+                { name: 'Primary 6', section: 'B', description: 'Primary 6 Section B' }
+            ];
+
+            const createdClasses = [];
+            for (const classData of classes) {
+                const classId = await firebaseDB.addClass(classData);
+                createdClasses.push({ id: classId, ...classData });
+            }
+            return createdClasses;
+        }
+
+        async function createSampleSubjects() {
+            const subjects = [
+                { name: 'Mathematics', code: 'MATH', description: 'Mathematics and problem solving' },
+                { name: 'English Language', code: 'ENG', description: 'English language and literature' },
+                { name: 'Science', code: 'SCI', description: 'General science and nature studies' },
+                { name: 'Social Studies', code: 'SS', description: 'History, geography and civics' },
+                { name: 'Computer Studies', code: 'CS', description: 'Basic computer skills and programming' },
+                { name: 'Art & Craft', code: 'ART', description: 'Creative arts and handicrafts' },
+                { name: 'Physical Education', code: 'PE', description: 'Sports and physical fitness' }
+            ];
+
+            const createdSubjects = [];
+            for (const subjectData of subjects) {
+                const subjectId = await firebaseDB.addSubject(subjectData);
+                createdSubjects.push({ id: subjectId, ...subjectData });
+            }
+            return createdSubjects;
+        }
+
+        async function createAdminUser() {
+            try {
+                // Create admin user with Firebase Auth
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword('admin@example.com', 'password123');
+                console.log('Admin user created successfully');
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    console.log('Admin user already exists');
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        async function createSampleExams(classes, subjects) {
+            const mathSubject = subjects.find(s => s.code === 'MATH');
+            const englishSubject = subjects.find(s => s.code === 'ENG');
+            const primary1A = classes.find(c => c.name === 'Primary 1' && c.section === 'A');
+            const primary2A = classes.find(c => c.name === 'Primary 2' && c.section === 'A');
+
+            if (!mathSubject || !englishSubject || !primary1A || !primary2A) {
+                console.log('Required classes or subjects not found for sample exams');
+                return [];
+            }
+
+            const exams = [
+                {
+                    title: 'Mathematics Mid-Term Exam',
+                    classId: primary1A.id,
+                    subjectId: mathSubject.id,
+                    duration: 30,
+                    description: 'Mid-term mathematics examination for Primary 1',
+                    questions: [
+                        {
+                            text: 'What is 2 + 3?',
+                            type: 'multiple-choice',
+                            options: { A: '4', B: '5', C: '6', D: '7' },
+                            correctAnswer: 'B',
+                            points: 1,
+                            order: 1
+                        },
+                        {
+                            text: 'Is 10 greater than 5?',
+                            type: 'true-false',
+                            correctAnswer: 'true',
+                            points: 1,
+                            order: 2
+                        }
+                    ]
+                },
+                {
+                    title: 'English Vocabulary Test',
+                    classId: primary2A.id,
+                    subjectId: englishSubject.id,
+                    duration: 25,
+                    description: 'Basic vocabulary test for Primary 2',
+                    questions: [
+                        {
+                            text: 'What is the opposite of "big"?',
+                            type: 'multiple-choice',
+                            options: { A: 'small', B: 'large', C: 'huge', D: 'tiny' },
+                            correctAnswer: 'A',
+                            points: 1,
+                            order: 1
+                        },
+                        {
+                            text: 'A cat is an animal.',
+                            type: 'true-false',
+                            correctAnswer: 'true',
+                            points: 1,
+                            order: 2
+                        }
+                    ]
+                }
+            ];
+
+            const createdExams = [];
+            for (const examData of exams) {
+                const examId = await firebaseDB.addExam(examData);
+                createdExams.push({ id: examId, ...examData });
+            }
+            return createdExams;
+        }
+    </script>
+</body>
+</html>
